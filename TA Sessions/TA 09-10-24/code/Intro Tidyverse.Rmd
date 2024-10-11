@@ -1,0 +1,124 @@
+---
+title: "Intro to Tidyverse"
+output: html_document
+date: "2024-10-02"
+---
+
+# Tidyverse Intro
+
+The `tidyverse` is a collection of R packages designed for data science. All of the packages share an underlying philosophy and grammar of data manipulation. The core packages include:
+
+* `ggplot2` for data visualization
+* `dplyr` for data manipulation
+* `tidyr` for data tidying
+* `readr` for data import
+* `purrr` for functional programming
+* `tibble` for tibbles, a modern reimagining of data frames
+
+## Data Manipulation with `dplyr`
+
+
+Let's use the `dplyr` package to manipulate some data. We'll use the built-in `mtcars` dataset for this example.
+
+### Viewing the data
+
+```{r}
+head(mtcars)
+```
+### Selecting Columns
+
+To select specific columns from a dataset, use the `select()` function:
+
+```{r}
+mtcars_selected <- mtcars |> 
+  dplyr::select(mpg, cyl, hp)
+
+head(mtcars_selected)
+
+```
+
+### Filtering Rows
+
+To filter rows based on a condition, use the `filter()` function:
+
+```{r}
+mtcars_filtered <- mtcars |>
+  dplyr::filter(mpg > 20)
+
+head(mtcars_filtered)
+
+```
+
+### Adding New Columns
+
+To create new variables, use the `mutate()` function:
+
+```{r}
+mtcars_mutated <- mtcars |>
+  dplyr::mutate(weight_to_power_ratio = hp / wt)
+
+head(mtcars_mutated)
+```
+
+### Summarizing Data
+
+To summarize data, use the `summarise()` function, often in combination with `group_by()`:
+
+```{r}
+mtcars_summary <- mtcars |>
+  dplyr::group_by(cyl) |>
+  dplyr::summarise(
+    avg_mpg = mean(mpg),
+    avg_hp = mean(hp)
+  )
+mtcars_summary
+
+```
+
+## Data Visualization with `ggplot2`
+
+The `ggplot2` package is part of the `tidyverse` and is widely used for data visualization. Here's an example of a scatter plot showing the relationship between horsepower (`hp`) and miles per gallon (`mpg`) in the `mtcars` dataset:
+
+```{r}
+ggplot2::ggplot(mtcars, ggplot2::aes(x = hp, y = mpg)) +
+  ggplot2::geom_point() +
+  ggplot2::labs(title = "Horsepower vs MPG",
+       x = "Horsepower",
+       y = "Miles per Gallon")
+
+```
+
+## Tidying data with `tidyr`
+
+The `tidyr` package helps transform data into a tidy format. A dataset is tidy when:
+
+1. Each variable forms a column.
+2. Each observation forms a row.
+3. Each type of observational unit forms a table.
+
+For example, if we have data in a wide format, we can use `pivot_longer()` to convert it into a tidy format:
+
+```{r}
+wide_data <- tibble::tibble(
+  id = 1:3,
+  treatment_A = c(5, 10, 15),
+  treatment_B = c(3, 6, 9)
+)
+
+tidy_data <- wide_data |>
+  tidyr::pivot_longer(cols = starts_with("treatment"), 
+               names_to = "treatment", 
+               values_to = "result")
+tidy_data
+
+```
+
+
+
+
+
+
+
+
+
+

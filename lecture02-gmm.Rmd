@@ -1,0 +1,266 @@
+---
+title: "Econometrics 1"
+subtitle: "GMM - Generalized Method of Moments"
+author: "Sophie Mathes"
+institute: "FGV EPGE"
+date: "4th Quarter 2023"
+output:
+  html_document:
+    theme: sandstone
+    toc: TRUE
+    toc_float: TRUE
+---
+
+Hansen, Chapter 13, Cameron and Trivedi, Chapter 6
+
+# Definition: GMM Estimator
+
+Remember: a "moment function" could be anything such as 
+$$g_i(\beta) := (p_1 c_{i,1}^{-\alpha}-\beta r_2 c_{i,2}^{-\alpha})$$
+as long as $E(g_i(\beta))=0$ in expectation (across the population, or across time, or both)
+
+Given a set of $l$ moment conditions $E(g_i(\beta))=0_l$ and a positive definite weighting matrix $W$, the GMM estimator $\beta_{GMM}$ with dimension $k\times 1$ minimizes
+
+$$\min_{\beta} \; J(\beta)=n \; \bar{g}_n(\beta)' \; W \; \bar{g}_n(\beta)$$
+
+If you choose the identity matrix as a weighting matrix $W=I_l$ the estimator $\hat{\beta}$ is the one that solves
+$$\min_{\beta} \; J(\beta)=n \; ||\bar{g}_n(\beta)||^2$$
+(The factor $n$ is not necessary, it just helps with asymptotics)
+
+Remember: If $k=l$, we do not need this minimization. You simply find the $\beta$ that solves $\bar{g}_n(\beta)=0$ (Method of Moments Estimator)
+
+
+# Underidentified GMM
+
+What to do if we have fewer moment equations than parameters? $l<k$
+
+This means that most likely there are many $\beta$s that solve $\bar{g}_n(\beta)=0$
+
+Typically, you want to find a unique $\beta$, because you are interested in the "true value" of these parameters, for example: the discount rate of individuals, or the factor shares of a production function, or a marginal utility parameter, etc.
+
+In that case: find more conditions! Look at your model and think about where you can get more moment conditions from, or extend your model to find other moment conditions.
+
+
+# GMM: More Generalizations
+
+Think back to the overidentified IV model with positive definite weighting matrix $W$
+
+$$\hat{\beta} = \left( G' W G \right)^{-1} G' W \mu$$
+
+with $G=(z'x)$ and $\mu = z'y$
+
+$$\hat{\beta} = \left( x'z\ W z' x \right)^{-1} x' z W z' y$$
+
+Fun fact: If you pick the weighting matrix $W=(z'z)^{-1}$ you get the 2SLS estimator
+
+$$\hat{\beta}_{2SLS} = \left( x' z (z'z)^{-1} z' x \right)^{-1} x' z (z'z)^{-1} z' y$$
+
+
+# GMM: Existential Questions
+
+Can we use the moment condition $E(u)=0$ since it follows from $E(u|x)$? In principle, yes! if we have one single variable $x$ and $y_i=x_i\beta + u_i$ we have
+$$\frac{1}{n}\sum_{i=1}^n(y_i - x_i\beta) = 0$$
+Notice that $u_i$ is a scalar. In the case of one single parameter $\beta$ we can solve this equation
+$$\frac{\sum_{i=1}^n y_i}{\sum_{i=1}^n x_i} = \beta$$
+If $\beta$ is a $k$ dimensional vector with $k>1$, then $\sum_{i=1}^n x_i$ is not invertible and this condition cannot be solved for $\beta$, so we need more conditions! 
+
+For example: $E(xu)=0$ and $E(x^2u)=0$ and $E(x^3u)=0$
+
+
+# Distribution of the GMM-IV estimator
+
+Remember 
+$$\mu = G\beta + \eta$$
+with 
+$$\mu=z'y, \quad G=z'x, \quad \eta=\mu-G\beta$$
+
+If we want to make any statements like "$\hat{\beta}$ is significantly larger than 0" we need to know the distribution of our estimator. Let's continue for now with the example of a GMM estimator in the case of an overidentified IV with some weighting matrix $W$
+
+Remember that the GMM estimator $\beta_{GMM}$ minimizes
+
+$$\min_{\beta} \; J(\beta)=n \; \bar{g}_n(\beta)' \; W \; \bar{g}_n(\beta)$$
+
+In the case of $\bar{g}_n(\beta)=(z'y-z'x\beta)$ (moment conditions for the IV case), we minimize
+
+$$\min_{\beta} \; J(\beta)=n \; (z'y-z'x\beta)' \; W \; (z'y-z'x\beta)$$
+
+so take FOC w.r.t. $\beta$ and solve (taking derivatives with matrices, fun)
+
+$$\hat{\beta} = \left( x'z\ W z' x \right)^{-1} x' z W z' y$$
+
+Define $Q:=E(z_ix'_i)$ (dim $l\times k$) and $e_i=(y_i-x_i\beta)$ and $g_i=z_i e_i$ and $\Omega=E(g_ig'_i)$ (dim $l\times l$)
+
+For $n\rightarrow \infty$, $\left(\frac{1}{n}z'x\right)$ converges in probability to $Q=E(z'x)$, therefore the following is true:
+$$\left(\frac{1}{n} x'z\right)W\left(\frac{1}{n} z'x\right)\stackrel{p}{\rightarrow}Q'WQ$$
+
+And for $n\rightarrow \infty$, $\frac{1}{\sqrt{n}}z'e=\frac{1}{\sqrt{n}}g=\frac{1}{\sqrt{n}}\sum_ig_i$ converges in distribution to a normal distribution with mean 0 and variance 
+$$Var\left(\frac{1}{\sqrt{n}}\sum_ig_i\right)=\frac{1}{n}Var\left(\sum_ig_i\right)=Var(g_i)=E(g_ig'_i)=\Omega$$
+Therefore:
+$$\left(\frac{1}{n} x'z\right)W\left(\frac{1}{\sqrt{n}} z'e\right)\stackrel{d}{\rightarrow}Q'WN(0,\Omega)$$
+
+Remember that
+$$\hat{\beta} = \left( x'z\ W z' x \right)^{-1} x' z W z' y$$
+
+Slutsky's theorem implies then that
+
+$$\sqrt{n}(\hat{\beta}-\beta)\stackrel{d}{\rightarrow}N(0,V_{\beta})$$
+$$V_{\beta}=(Q'WQ)^{-1}(Q'W\Omega WQ)(Q'WQ)^{-1}$$
+
+What is this good for? With an estimator for the variance of the GMM estimator we can do hypothesis testing!
+
+
+# Refreshments
+
+## Refresher 1: Converge in probability
+$x_n \stackrel{p}{\rightarrow} x$ : $x_n$ converges in probability (plim) to $x$,  iff
+$$P(|x_n-x|>\varepsilon) \stackrel{n \rightarrow \infty}{\longrightarrow} 0$$
+
+## Refresher 2: Converge in distribution
+$x_n\stackrel{d}{\rightarrow} x$ : $x_n$ with distribution $F_n(t)$ converges in distribution to $x$ with distribution $F(t)$,  iff
+$$\lim_{n\rightarrow\infty} F_n(t) = F(t) \quad \forall t \in \mathbb{R}$$
+
+## Refresher 3: Slutsky's theorem 
+If $a_n$ and $b_n$ converge *in probability* to $a$ and $b$, and $x_n$ converges *in distribution* to $x$, then 
+$$a_n+b_n x_n \stackrel{d}{\longrightarrow} a+bx$$
+
+## Refresher 4: Taylor's Theorem
+Taylor's theorem with Mean Value remainder. If a real-valued function $f$ is $k$ times differentiable at the point $x_0$, then it has a linear approximation near this point. There exists $\xi \in [x,x_0]$ such that
+$$f(x) = f(x_0) + f'(x_0) (x-x_0) +$$
+$$\frac{f''(x_0)}{2!}(x-x_0)^2 + ... + \frac{f^{(k)}(x_0)}{k!}(x-x_0)^k + \frac{f^{(k+1)}(\xi)}{(k+1)!}(x-x_0)^{(k+1)}$$
+
+## Refresher 5: GMM Definition
+The GMM estimator $\hat{\beta}_{GMM}$ is defined as the $\beta$ that minimizes
+$$\min_{\beta} J_n(\beta) = \bar{g}_n(\beta) \; W_n \; \bar{g}_n(\beta)$$
+with some positive definite weighting matrix $W_n$
+
+Since the weighting matrix $W_n$ is positive definite, this is equivalent (why?) to solving the FOC
+$$\bar{G}'_n(\beta) \; W_n \; \bar{g}_n(\beta)=0$$
+where $G$ is the Jacobian of $\bar{g}_n$ w.r.t. $\beta$
+
+If we want to make any statements like 
+
+> $\hat{\beta}$ is significantly larger than 0
+
+we need to know the distribution of our estimator $\hat{\beta}_{GMM}$ The following proof is for the general overidentified case of GMM.
+
+# GMM: Consistency + Asymptotics
+
+## Theorem 
+
+#### (Consistency and asymptotic distribution of $\hat{\beta}_{GMM}$)
+
+**IF**
+
+1. the system of moment equations $E(g_i(\beta_0))=0$ holds, i.e. we have correctly specified the relationships between $x$ and $y$ in our data
+2. the moment functions are injective w.r.t. $\beta$, i.e. $g_i(\beta)=g_i(\tilde{\beta}) \Leftrightarrow \beta = \tilde{\beta}$ (notice this cannot hold in underdefined moment systems; if $l<k$ we cannot get injectivity here)
+3. the matrix $G_0$ exists (probability limit of the Jacobian of $\bar{g}_n$), contains only finite elements, is of dimension $l\times k$, and is of rank $k$ (full rank), 
+$$G_0 := plim \; \left.\frac{\partial \bar{g}_n}{\partial \beta'}\right|_{\beta_0} = plim \; \frac{1}{n}\sum_i \left[  \left. \frac{\partial g_i}{\partial \beta'} \right|_{\beta_0} \right]$$
+4. $W_n \stackrel{p}{\rightarrow} W_0$, the weighting matrix converges to a finite symmetric positive definite matrix $W_0$,
+5. $\sqrt{n}\bar{g}_n(\beta_0)$ converges in distribution
+$$\sqrt{n}\bar{g}_n(\beta_0) = \frac{1}{\sqrt{n}}\sum_i g_i(\beta_0) \stackrel{d}{\rightarrow} N(0,S_0)$$ 
+with 
+$$S_0 = plim \; \frac{1}{n}\sum_i \sum_j \left[g_i g'_j |_{\beta_0} \right]$$
+
+
+**THEN **
+
+the GMM estimator $\hat{\beta}_{GMM}$, *defined as the $\beta$ that solves the first order conditions of the minimization problem* $\min J_n$ is a consistent estimator of the true $\beta_0$ 
+
+AND $\sqrt{n}(\hat{\beta}_{GMM}-\beta_0) \stackrel{d}{\rightarrow} N(0,(G'_0W_0G_0)^{-1}(G'_0W_0S_0W_0G_0)(G'_0W_0G_0)^{-1})$ 
+
+## Proof
+
+Consider the minimization problem 
+$$\min_{\beta} \; J(\beta)=n \; \bar{g}_n(\beta)' \; W \; \bar{g}_n(\beta)$$
+
+Define $\hat{\beta}_{GMM}$ as the solution of the FOC of the minimization problem
+$$\bar{G}'_n(\beta) \; W_n \; \bar{g}_n(\beta)=0, \quad k\times l, l\times l, l\times 1 = k\times 1$$
+
+$\bar{G}_n$ is the Jacobian of $\bar{g}$
+
+
+### 1. Consistency
+First, we use assumption (2) that $g_i$ is assumed to be injective $\rightarrow$ $\bar{g}_n$ is injective as a result (notice that constant functions do not fulfill that). Second, we use that $G_n$ and $W_n$ have a 1. finite and 2. full-rank probability limit (3) and (4)
+
+Taking these together, we know that any solution to the FOC of the minimization problem has to be a unique solution
+
+The Law of Large Numbers tells us that $\bar{g}_n(\beta)$ converges go $E(g(\beta))$, therefore $plim \; \bar{g}_n(\beta_0)=0$ (CT claims we need assumption (5) to ensure that $plim \; \bar{g}_n(\beta_0)=0$). Therefore, the probability limit of the LHS of the FOC is 0 **at** $\beta_0$. 
+
+This means that $\beta_0$ solves the probability limit of the FOC, and that this solution is unique $\Rightarrow$ the probability limit of the solution to the FOC must be equal to $\beta_0$
+
+This implies that the GMM estimator is consistent $\hat{\beta}_{GMM} \stackrel{p}{\rightarrow} \beta_0$
+
+### 2. Asymptotic distribution
+For asymptotic normality, we use the LHS of the FOC. 
+
+First, let's add a factor $\sqrt{n}$ to the LHS of the FOC because we can
+
+$$\bar{G}'_n(\hat{\beta}) \; W_n \; \sqrt{n} \; \bar{g}_n(\hat{\beta})=0$$
+
+Now let's do a first-degree Taylor expansion of the third factor $\sqrt{n}\bar{g}_n(\beta)$ around the point $\beta_0$, specifically there must exist a $\tilde{\beta}$ between $\hat{\beta}$ and $\beta_0$ such that
+
+$$\sqrt{n}\bar{g}_n(\hat{\beta})=\sqrt{n}\bar{g}_n(\beta_0) + \sqrt{n}\bar{G}_n(\tilde{\beta})(\hat{\beta}-\beta_0)$$
+
+then plug this Taylor expansion back into the FOC, 
+$$\bar{G}'_n(\hat{\beta}) \; W_n \; \left(\sqrt{n}\bar{g}_n(\beta_0) + \sqrt{n}\bar{G}_n(\tilde{\beta})(\hat{\beta}-\beta_0) \right)=0$$
+
+and solve for $\sqrt{n}(\hat{\beta}-\beta_0)$ 
+$$\sqrt{n}(\hat{\beta}-\beta_0) = - \left( \bar{G}'_n(\hat{\beta}) \; W_n \; \bar{G}_n(\tilde{\beta})\right)^{-1}\bar{G}'_n(\hat{\beta}) \; W_n \; \sqrt{n}\bar{g}_n(\beta_0)$$
+
+Now we apply Slutsky's theorem to all the components on the RHS, using the plim assumptions (3) and (4), the distribution limit assumption (5), the consistency $\hat{\beta}\stackrel{p}{\rightarrow}\beta_0$, and the fact that $\tilde{\beta} \in [\beta_0,\hat{\beta}]$
+$$\sqrt{n}(\hat{\beta}-\beta_0) = - \left( \underbrace{\bar{G}'_n(\hat{\beta})}_{\stackrel{p}{\rightarrow}G_0} \; \underbrace{W_n}_{\stackrel{p}{\rightarrow}W_0} \; \underbrace{\bar{G}_n(\tilde{\beta})}_{\stackrel{p}{\rightarrow}G_0}\right)^{-1}\underbrace{\bar{G}'_n(\hat{\beta})}_{\stackrel{p}{\rightarrow}G_0} \; \underbrace{W_n}_{\stackrel{p}{\rightarrow}W_0} \; \underbrace{\sqrt{n}\bar{g}_n(\beta_0)}_{\stackrel{d}{\rightarrow}N(0,S_0)}$$
+
+So 
+$$\sqrt{n}(\hat{\beta}-\beta_0) \stackrel{d}{\longrightarrow} N\left(0,(G'_0 W_0 G_0)^{-1} G'_0 W_0 S_0 W_0 G_0 (G'_0 W_0 G_0)^{-1}\right)$$
+
+
+## Variations of $S_0$
+###  Independent draws
+If $(x_i,y_i)$ are independent over $i$,
+$$S_0 = plim \; \frac{1}{n}\sum_i \sum_j \left[g_i(\beta_0) g'_j(\beta_0) \right]$$
+
+simplifies to
+$$S_0 = plim \; \frac{1}{n}\sum_i \left[g_i(\beta_0) g'_i(\beta_0) \right]$$
+
+
+### Just-identified case
+
+What do you know about the dimensions of $G_0$ in the case of $k=l$? It is square, and with full rank this means it is invertible so the variance of $\sqrt{n}(\hat{\beta}-\beta_0)$ becomes
+$$(G'_0 W_0 G_0)^{-1} G'_0 W_0 S_0 W_0 G_0 (G'_0 W_0 G_0)^{-1}$$
+$$G_0^{-1} W_0^{-1} (G'_0)^{-1} G'_0 W_0 S_0 W_0 G_0 G_0^{-1} W_0^{-1} (G'_0)^{-1}$$
+$$G_0^{-1} S_0 (G'_0)^{-1}$$
+
+
+# GMM: Variance Estimation
+
+How do we get the probability limit of the Jacobian $G_0$ and $S_0$? And, in case we use a weighting matrix that depends on the data, the probability limit $W_0$?
+
+Estimate $G_0$ with $\hat{G}=G(\hat{\beta}_{GMM})$, the Jacobian of $\bar{g}_n$ evaluated at the GMM estimator $\hat{\beta}_{GMM}$
+
+Estimate $W_0$ with $\hat{W}_0=W_N$
+
+Estimate  $S_0$ with
+$$\hat{S} = plim \; \frac{1}{n}\sum_i \left[g_i(\hat{\beta}_{GMM}) g'_i(\hat{\beta}_{GMM}) \right]$$
+
+and combining these we can estimate the variance of $\hat{\beta}_{GMM}$ as
+$$\hat{V}_{GMM} = \frac{1}{n}(\hat{G'} W_N \hat{G})^{-1} \hat{G'} W_N \hat{S} W_N \hat{G} (\hat{G'} W_N \hat{G})^{-1}$$
+
+
+# GMM: Optimal weighting matrix
+
+The variance of the GMM estimator depends on the choice of the weighting matrix
+$$\hat{V}_{GMM} = \frac{1}{n}(\hat{G'} W_N \hat{G})^{-1} \hat{G'} W_N \hat{S} W_N \hat{G} (\hat{G'} W_N \hat{G})^{-1}$$
+
+Idea: Choose the weighting matrix that 'minimizes' the variance estimator of the GMM estimator! $\Rightarrow$ 'Optimal weighting matrix'
+
+In practice, the weighting matrix is often chosen as $W_N:=\hat{S}^{-1}$, then the variance estimator simplifies to
+
+$$\hat{V}_{GMM} = \frac{1}{n} \left(\hat{G'} \hat{S}^{-1} \hat{G}\right)^{-1}$$
+Notice that 'optimality' here is conditional on the choice of moment functions. 
+
+Problem: To estimate $\hat{S}$, we first need to estimate $\hat{\beta}_{GMM}$, and to estimate $\hat{\beta}_{GMM}$ we need a weighting matrix $W_N$. What to do?
+
+## Two-Step GMM estimation
+1. Pick *some* weighting matrix $W_N$ and estimate $\hat{\beta}_1$
+2. Calculate $\hat{S}$ using the first round $\hat{\beta}_1$ and use $\hat{S}$ to  estimate $\hat{\beta}_2$
+

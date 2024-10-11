@@ -1,0 +1,562 @@
+---
+title: "Econometrics 1"
+subtitle: "Nonparametric Methods"
+author: "Sophie Mathes"
+institute: "FGV EPGE"
+date: "4th Quarter 2024"
+output:
+  html_document:
+    theme: sandstone
+    toc: TRUE
+    toc_float: TRUE
+---
+
+Cameron and Trivedi, Chapter 9
+
+# Intro
+###  Preview: Nonparametric methods 
+  
+In all econometric methods you have learned so far, you have some given dataset available, and you have made assumptions about the relationship $g$ between your variables $y=g(x,\beta)$, for example $y=x\beta + u$ or $y=log(x)\beta + u$
+  
+These estimations are called "parametric methods" because we already assume the relationship between the variables, and all that is left to do is estimate the *parameters* of these assumed relationships
+
+Nonparametric estimation aims to estimate the relationship between $x$ and $y$ *without* assuming a given relationship ex ante!
+  
+One very famous non-parametric estimator are **kernel density estimators**
+  
+Kernel density estimators estimate for example the (conditional or unconditional) distribution of a variable $x$
+  
+Kernel density estimators are essentially fancy histograms
+
+Another famous non-parametric estimation method are **kernel density regressions**
+  
+### Preview: Semiparametric methods
+  
+In practice, non-parametric methods require a lot of data, especially when multiple variables are involved, not just one $x$ and one $y$ ("dimensionality curse")
+
+$\Rightarrow$ invent "Semi-parametric methods"
+
+Assume that the relationship $g(x,\beta)=g(x\beta)$, and estimate $g$
+
+Important application: $g$ might be truncated or censored, e.g. observed wages are never below zero. Classic OLS cannot deal with that
+
+Useful feature: Do not need to make assumptions about error term $u_i$
+
+Convergence typically slower than for parametric models (flexibility comes at a cost)
+  
+
+#  Nonparametric methods 
+## Example: Estimate distribution of hourly wages
+  
+```{r, out.width='80%', fig.align='center', fig.cap='', echo=FALSE}
+knitr::include_graphics('supp/log_wages.png')
+```
+
+The standard smoothed nonparametric density estimate is the kernel density estimate
+
+A kernel density estimator is based on the logic of a histogram
+
+Nonparametric density estimates are useful 1) to compare different groups and 2) for comparison to a benchmark like the normal distribution
+
+A histogram is a basic density estimator
+
+1. split the domain of $x$ into equally spaced intervals
+2. calculate the fraction of the sample in each interval
+
+Estimate the density $f$ of a scalar continuous random variable $x$ at some given point $x_0$
+
+A density is the derivative of a distribution $F$, i.e. $f(x_0) = \left.\frac{\partial F}{\partial x}\right|_{x_0}$ we have
+
+$$f(x_0) = \lim_{h\rightarrow 0} \frac{F(x_0+h)-F(x_0-h)}{2h}$$
+
+$$f(x_0) = \lim_{h\rightarrow 0} \frac{P(x_0-h<x<x_0+h)}{2h}$$
+  
+##  Motivate: Histogram
+A histogram estimates a piecewise constant density function
+$$\hat{f}_{hist}(x_0)=\frac{1}{n}\sum_{i=1}^n \frac{I(x_0-h<x_i<x_0+h)}{2h}$$
+$I$ is an indicator function that equals 1 if $x_0-h<x<x_0+h$ and 0 otherwise
+
+Notice that this estimator of a density function depends on the choice of "bandwidth" $h$
+  
+$\hat{f}_{hist}(x_0)$ is a density estimate centered at $x_0$ with bin width $2h$
+  
+It equals the fraction of the sample that lies between $x_0 − h$ and $x_0 + h$, divided by the bin width $2h$. If the number of observations in the bin is the "surface" of the bar, dividing it by the width of the bar gives you the height of the bar
+  
+Notice that the estimator $\hat{f}_{hist}(x_0)$ gives all observations in $x_0 \pm h$ equal weight. See this by rewriting the expression above as
+
+$$\hat{f}_{hist}(x_0)=\frac{1}{nh}\sum_{i=1}^n \frac{1}{2} \cdot I \left(\frac{|x_i - x_0|}{h}< 1\right)$$
+    
+
+##  Motivate: Kernels
+    
+A histogram is a piecewise constant (not continuous) function, even if the underlying density of $x$ is continuous
+
+How can we estimate a continuous density function?
+  
+Idea: Instead of indicator function $I$, use other weighting functions $K$. Compare:
+$$\hat{f}_{hist}(x_0)=\frac{1}{nh}\sum_{i=1}^n \frac{1}{2} \cdot I \left(\frac{|x_i - x_0|}{h}< 1\right)$$
+
+$$\hat{f}(x_0)=\frac{1}{nh}\sum_{i=1}^n K\left(\frac{x_i - x_0}{h}\right)$$
+    
+$K$ is called a **kernel** function, $h$ is called **bandwidth** 
+
+#  Kernel density estimation
+
+##  Definition Kernel density function estimator
+
+$$\hat{f}(x_0):=\frac{1}{nh}\sum_{i=1}^n K\left(\frac{x_i - x_0}{h}\right)$$
+with $h$ bandwidth, $n$ sample size, $K$ a suitable kernel function
+
+## Requirements for kernel functions
+
+### 1. $K$ is symmetric around 0 and is continuous
+### 2. 
+$$\int K(z)dz = 1, \quad \int zK(z)dz = 0, \quad \int |K(z)|dz < \infty$$
+
+  Notice that typical density functions that are centered around zero fulfill this, but not only density functions
+
+### 3. Either
+
+  a. $K(z) = 0$ if $|z| \geq z_0$ for some $z_0$, 
+  
+  b. or $|z|K(z) \rightarrow 0$ as $|z| \rightarrow \infty$
+
+  $\approx$ the support of $K$ is not the entire real line, or at least $K$ gets really small really fast as $|z|$ goes to infinity
+
+### 4. $\int z^2K(z)dz = \kappa$, where $\kappa$ is a constant
+
+
+## Examples of kernel functions
+
+* Uniform (or box, or rectangular) $\frac{1}{2}\cdot\mathbb{I}(|z|<1)$
+* Triangular (or triangle) $(1-|z|)\cdot\mathbb{I}(|z|<1)$
+* Epanechnikov (or quadratic) $\frac{3}{4}\cdot(1-z^2)\cdot\mathbb{I}(|z|<1)$
+* Quartic (or biweight) $\frac{15}{16}\cdot(1-z^2)^2\cdot\mathbb{I}(|z|<1)$
+* Triweight $\frac{35}{32}\cdot(1-z^2)^3\cdot\mathbb{I}(|z|<1)$
+* Tricubic $\frac{70}{81}\cdot(1-|z|^3)^3\cdot\mathbb{I}(|z|<1)$
+* Gaussian $(2\pi)^{-1/2}\exp(-z^2/2)$
+* Fourth-order Gaussian $\frac{1}{2}(3-z^2)(2\pi)^{-1/2}\exp(-z^2/2)$
+* Fourth-order quartic $\frac{15}{32}\cdot(3-10z^2+7z^4)\cdot\mathbb{I}(|z|<1)$
+
+(Which ones do not fulfill 3a?)
+
+The uniform kernel produces *almost* a histogram $\rightarrow$ it is not evaluated at fixed bins but the bins are "endogenous" to the data; $\hat{f}$ is evaluated at each point $x_0$
+
+**p-th order kernel**: first non-zero moment is the $p$-th moment, $\int z^p K(z) dz$
+
+(check kernel requirement 2b, the first moment is required to be zero)
+
+Higher order kernels can increase rates of convergence if the underlying $f$ is more than twice differentiable. Notice higher order kernels may take negative values but that's ok
+
+##  Example: Brazilian Gridded Weather Data
+
+Average daily maximum temperature between 2001-01-01 and 2023-12-31.
+
+$$\hat{f}(x_0)=\frac{1}{nh}\sum_{i=1}^n K\left(\frac{x_i - x_0}{h}\right)$$
+```{r, echo=TRUE, message=FALSE}
+library("tidyverse")
+data = readRDS("temperature.Rds") %>% dplyr::filter(year<=2023)
+print(summary(data$mean_tmax))
+n = length(data$mean_tmax)
+print(n)
+```
+
+### Histograms of daily temperatures
+
+```{r, echo=TRUE}
+temp = data$mean_tmax[data$year>=2001 & data$year<=2003]
+hist(temp, 
+     main = paste("Mean:", round(mean(temp), 2), "C, P95:", round(quantile(temp, 0.95), 2)),
+     breaks=50, 
+     xlim = c(24,37),
+     xlab="2001-2003", xaxt="n")
+abline(v=mean(temp), col="blue")
+abline(v=quantile(temp, 0.95), col="red", lty=3)
+axis(side=1, at=seq(20,40,by=3), labels=seq(20,40,by=3))
+temp = data$mean_tmax[data$year>=2021 & data$year<=2023]
+hist(temp, 
+     main = paste("Mean:", round(mean(temp), 2), "C, P95:", round(quantile(temp, 0.95), 2)),
+     breaks=50, 
+     xlim = c(24,37),
+     xlab="2021-2023", xaxt="n")
+abline(v=mean(temp), col="blue")
+abline(v=quantile(temp, 0.95), col="red", lty=3)
+axis(side=1, at=seq(20,40,by=3), labels=seq(20,40,by=3))
+```
+
+Use Epanechnikov kernel $\Rightarrow$ 
+$$K(z) = \frac{3}{4} \; (1-z^2) \; I(|z|<1)$$
+
+### Density function estimate
+
+Estimated density function of daily maximum temperature in Brazil 2001-2023
+```{r}
+x = data$mean_tmax
+min = floor(min(x))
+max = ceiling(max(x))
+n = length(data$mean_tmax)[1]
+print(n)
+h = 1
+epanechnikov = function(z) {0.75*(1-z^2)*as.numeric(abs(z)<1)}  
+f_hat = function(xg) {
+  k_argument = (xg - x)/h
+  k = epanechnikov(k_argument)
+  s = sum(k)/(n*h)
+  return(s)
+}
+xg = seq(min(x), max(x), 0.5)
+y = sapply(xg, f_hat)
+plot(xg, y, pch=16, xlab="Temperature (C)")
+lines(xg, y)
+```
+
+```{r, out.width='80%', fig.align='center', fig.cap='', echo=FALSE}
+knitr::include_graphics('supp/kdensity_examples.png')
+```
+
+## Digression: Landau notation
+
+### Landau $O$ - "Big O"
+
+"Big O notation" - "Bias is of the order $O(h^2)$"
+
+$O$ is "Landau notation" $:\Leftrightarrow$ the function $a$ is of the order $O(h^k)$ iff...
+
+$$\frac{a(h)}{h^k} \stackrel{h\rightarrow 0}{\longrightarrow} t, \quad t \in \mathbb{R}$$
+
+Look at this closely. When $h\rightarrow 0$, then $h^k\rightarrow 0$. Since $h^k$ is in the denominator, $a(h)$ must go to 0 "even faster", or "just as fast as" $h^k$, in order for the limit to be finite
+
+Example: Consider $a(h)=h^2$. Is $a$ of the order $O(h^3)$? $\frac{h^2}{h^3} = \frac{1}{h} \stackrel{h\rightarrow 0}{\longrightarrow} \infty$, so *No*. $h^2$ goes to zero "a lot slower" than $h^3$
+
+The bias disappears asymptotically if $h\rightarrow 0$ when $n\rightarrow \infty$
+
+
+### Landau $o$ - "little o"
+
+The Landau $o$ is even stricter than $O$. $a$ is said to be $o(h^k)$ if $\frac{a(h)}{h^k} \stackrel{h\rightarrow 0}{\longrightarrow} 0$ 
+
+$\rightarrow$ $a$ goes to zero "way faster" than $h^k$. (Notice that $o$ implies $O$) 
+
+
+
+##  Bias
+
+### Properties of kernel density estimator $\hat{f}$
+
+Check whether the kernel density estimator $\hat{f}$ is biased at $x_0$
+$$b(x_0) = E\left(\hat{f}(x_0) - f(x_0)\right) = E\left(\hat{f}(x_0)\right) - f(x_0)$$
+To analyze the bias, consider the expression $E (\hat{f}(x_0))$
+$$E\left(\hat{f}(x_0)\right)=E\left(\frac{1}{nh}\sum_{i=1}^n K(\frac{x_i-x_0}{h})\right)=\frac{1}{nh}\sum_{i=1}^n E\left(K(\frac{x_i-x_0}{h})\right)$$
+$x_i$ are i.i.d.
+$$=\frac{1}{nh} \; n \; E\left(K(\frac{x-x_0}{h})\right) = E\left(\frac{1}{h} K(\frac{x-x_0}{h})\right) = \int \frac{1}{h} K(\frac{t-x_0}{h})f(t)dt$$
+Substitute $z:=\frac{t-x_0}{h}$, then $t=x_0+zh$ and $\frac{\partial z}{\partial t}=\frac{1}{h}$
+$$... = \int K(z)f(x_0+zh)dz$$
+
+$$E\left(\hat{f}(x_0)\right) = \int K(z)f(x_0+zh)dz$$
+Add a second-order Taylor expansion at $f(x_0)$: 
+$$f(x_0+zh)=f(x_0)+f'(x_0)(x_0+zh-x_0)+\frac{1}{2}f''(x_0)(x_0+zh-x_0)^2+O(h^3)$$
+Plug in the expansion
+$$E\left(\hat{f}(x_0)\right) = \int K(z) \left(f(x_0)+f'(x_0)(zh)+\frac{1}{2}f''(x_0)(zh)^2+O(h^3)\right)dz$$
+Reformulate
+$$... = f(x_0) \int K(z)dz + hf'(x_0)\int z K(z)dz + \frac{1}{2} h^2 f''(x_0)\int z^2 K(z)dz + O(h^3)$$
+Assumptions on kernel functions: $\int K(z)dz = 1$, and $\int zK(z)dz = 0$, therefore
+$$E\left(\hat{f}(x_0)\right) = f(x_0) + \frac{1}{2} h^2 f''(x_0)\int z^2 K(z)dz + O(h^3)$$
+
+
+$$E\left(\hat{f}(x_0)\right) = f(x_0) + \frac{1}{2} h^2 f''(x_0)\int z^2 K(z)dz + O(h^3)$$
+So we directly get an expression for the bias of $\hat{f}$
+$$E\left(\hat{f}(x_0)\right) - f(x_0) = \frac{1}{2} h^2 f''(x_0)\int z^2 K(z)dz + O(h^3)$$
+$\int z^2K(z)dz$ is assumed to be finite, therefore we can conclude that the bias term is of order $O(h^2)$. ($O(h^3)$ implies $O(h^2)$).
+
+So as $n\rightarrow \infty$ and $h\rightarrow 0$, $E(\hat{f}(x_0))$ goes to $f(x_0)$ 
+
+$\hat{f}(x_0)$ is an asymptotically consistent estimator for $f(x_0)$
+
+### Summary: Bias of kernel density estimator $\hat{f}$
+
+$$b(x_0) = E\left(\hat{f}(x_0)\right) - f(x_0) = \frac{1}{2} h^2 f''(x_0)\int z^2 K(z)dz + O(h^3)$$
+
+**Bad news** $\hat{f}$ is biased even with $x$ i.i.d.  
+
+**Good news** The bias goes to zero asymptotically if $h\rightarrow 0$ and $n\rightarrow \infty$
+
+The kernel density estimator is biased at $x_0$ with bias term $b(x_0)$ that depends on bandwidth $h$, the curvature of the true $f$, and the kernel $K$
+
+"Bias is of the order $O(h^2)$"
+
+
+##  Variance
+
+### Variance of kernel density estimator $\hat{f}$
+
+$$V(\hat{f}_{x_0})=Var\left(\frac{1}{nh}\sum_i K(\frac{x_i-x_0}{h})\right)=\frac{1}{n^2}Var(\sum_i \frac{1}{h}K(\frac{x_i-x_0}{h}))$$
+$x_i$ are i.i.d., therefore
+$$...=\frac{1}{n^2} \; n \; Var(\frac{1}{h}K(\frac{x_i-x_0}{h})) = \frac{1}{n} \; Var\left(\frac{1}{h}K(\frac{x_i-x_0}{h})\right)$$
+$$...=\frac{1}{n} \; E(\left[\frac{1}{h}K(\frac{x_i-x_0}{h})\right]^2) - \frac{1}{n}\left[ \underbrace{E(\frac{1}{h}K(\frac{x_i-x_0}{h}))}_{=E(\hat{f}(x_0))}\right]^2$$
+
+Now consider the first term
+$$E(\left[\frac{1}{h}K(\frac{x_i-x_0}{h})\right]^2) = \int \left[\frac{1}{h}K(\frac{t-x_0}{h})\right]^2 f(t) dt$$
+
+Substitute $z:=\frac{t-x_0}{h}$, $\frac{\partial z}{\partial t}=\frac{1}{h}$
+$$\int \left[\frac{1}{h}K(\frac{t-x_0}{h})\right]^2 f(t) dt = \int \frac{1}{h}K(z)^2 f(zh+x_0) dz$$
+Now Taylor with a first-order expansion $f(zh+x_0)=f(x_0)+f'(x_0)(zh+x_0-x_0)+O(h^2)$
+$$= \int \frac{1}{h}K(z)^2 \left(f(x_0)+f'(x_0)zh+  \underbrace{\frac{1}{2}f''(x_0)z^2h^2}_{O(h^2)}  \right) dz$$
+Break this up to get
+$$E(\left[\frac{1}{h}K(\frac{x_i-x_0}{h})\right]^2) = \frac{1}{h}f(x_0) \int K(z)^2dz + f'(x_0)\int z K(z)^2 dz + O(h)$$
+Notice that $\frac{1}{h}\frac{1}{2}f''(x_0)z^2h^2 = \frac{1}{2}f''(x_0)z^2h\rightarrow O(h)$
+
+This is an expression we can plug back into $V(\hat{f}(x_0))=\frac{1}{n} \; E(\left[\frac{1}{h}K(\frac{x_i-x_0}{h})\right]^2) - \frac{1}{n}\left[ E(\hat{f}(x_0)\right]^2$
+
+$$V(\hat{f}(x_0))=\frac{1}{nh}f(x_0) \int K(z)^2dz + \frac{1}{n}f'(x_0)\int z K(z)^2 dz \; + \; \frac{1}{n} O(h)$$ 
+$$- \; \frac{1}{n}\left[ E(\hat{f}(x_0))\right]^2$$
+Use bias term $E(\hat{f}(x_0))-f(x_0)=\frac{1}{2} h^2 f''(x_0)\int z^2 K(z)dz + O(h^3)$ to plug in last term
+$$V(\hat{f}(x_0))=\frac{1}{nh}f(x_0) \int K(z)^2dz + \frac{1}{n}f'(x_0)\int z K(z)^2 dz \; + \; \frac{1}{n} O(h)$$ 
+$$- \; \frac{1}{n}\left[ f(x_0) + \frac{1}{2} h^2 f''(x_0)\int z^2 K(z)dz + O(h^3) \right]^2$$
+Notice that for $n\rightarrow \infty$ and $h\rightarrow 0$ all of these terms disappear *except* the first term. We cannot know what happens to $nh$ if $n\rightarrow \infty$ and $h\rightarrow 0$. But we can check what happens when we assume $nh\rightarrow\infty$ (and thus $\frac{1}{nh}\rightarrow 0$)
+
+$$V(\hat{f}(x_0))=\frac{1}{nh}f(x_0) \int K(z)^2dz + o\left(\frac{1}{nh}\right)$$
+
+For example, take the second term $\frac{1}{n}f'(x_0)\int z K(z)^2 dz$
+
+$$\frac{\frac{1}{n}f'(x_0)\int z K(z)^2 dz}{\frac{1}{nh}} = h f'(x_0)\int z K(z)^2 dz \stackrel{h\rightarrow 0}{\longrightarrow} 0$$
+Or the third term $\frac{1}{n} O(h)$ which is a product with the first factor going to zero for $n\rightarrow\infty$ and the second factor going to a constant for $h\rightarrow 0$.
+
+So for the variance of $\hat{f}(x_0)$, we have a term that goes to zero as $nh\rightarrow\infty$, plus other terms that disappear even faster than the first term.
+
+
+### Summary: Variance of kernel density estimator $\hat{f}$
+
+When $h\rightarrow 0$ and $n\rightarrow \infty$
+
+$$V(\hat{f}(x_0)) = \frac{1}{nh}f(x_0)\int K(z)^2 dz + o\left(\frac{1}{nh}\right)$$
+
+The variance of $\hat{f}(x_0)$ depends on $K$, $h$, $f$, and $n$!
+
+The variance disappears if $nh\rightarrow \infty$ / when $h\rightarrow 0$ it must be at a slower rate than $n\rightarrow \infty$
+
+
+## Consistency and asymptotics
+
+The kernel estimator is pointwise consistent (consistent at each point $x = x_0$) 
+
+Bias disappears if $h\rightarrow 0$ and $n\rightarrow \infty$
+
+It can even be shown that $\hat{f}$ converges uniformly 
+$$\sup_{x_0} |\hat{f}(x_0)-f(x_0)| \stackrel{p}{\rightarrow} 0, \quad \text{if} \; \frac{nh}{\log(n)}\rightarrow \infty$$
+
+The kernel estimator is asymptotically normal (central limit theorem)
+
+$$\sqrt{nh}(\hat{f}(x_0)-f(x_0)-b(x_0)) \stackrel{d}{\rightarrow} N(0,f(x_0)\int K(z)^2dz)$$
+
+
+##  Bandwidth
+
+How to choose the right bandwidth $h$?
+
+Tradeoff: want to set $h$ small to reduce bias but also want to set $h$ large to get smooth result
+
+Idea: use mean-squared error (MSE, sum of squared bias and variance) to find the right balance
+
+$$MSE(\hat{f}(x_0)) = E\left[ \left( \hat{f}(x_0) - f(x_0) \right)^2 \right]$$ 
+$$= Var(\hat{f}(x_0) - f(x_0)) + E\left[\hat{f}(x_0) - f(x_0) \right]^2$$
+
+Remember the bias is: $b(x_0)=E(\hat{f}(x_0))-f(x_0) = \frac{1}{2} h^2 f''(x_0) \int z^2 K(z) dz$
+
+...and the variance is $V(\hat{f}(x_0)) = \frac{1}{nh}f(x_0)\int K(z)^2 dz + o\left(\frac{1}{nh}\right)$
+
+Bias is $O(h^2)$ and the variance is $O(\frac{1}{nh})$ $\Rightarrow$ the square of the bias is $O(h^4)$ (why?)
+
+
+Square of bias is $O(h^4)$ and the variance is $O(\frac{1}{nh})$ 
+
+We know that the bias-squared goes to zero "not much slower than $h^4$" and the variance goes to zero "not much slower than $\frac{1}{nh}$" $\rightarrow$ pick $h$ such that the terms go to zero "at the same speed"
+
+$$h^4 \stackrel{!}{=} \frac{1}{nh} \quad \Rightarrow \quad h^*= \left(\frac{1}{n}\right)^{0.2}$$
+
+With this choice of $h$, the MSE goes to zero as $n\rightarrow \infty$ $\checkmark$
+
+
+The MSE at $\hat{f}(x_0)$ is a *local* measure of performance, specifically at $x_0$
+
+But we are estimating a whole function $\hat{f}$! Is the locally optimal bandwidth also the globally optimal bandwidth? Can we do better than $h=n^{-0.2}$? Generalize the Mean Squared Error (MSE). "Sum up" the squared errors into the Integrated Squared Error (ISE)
+$$ISE(h) = \int (\hat{f}(x_0)-f(x_0))^2 dx_o$$
+
+Look at this, we are simply "summing up" all squared errors over all $x_0$. And now we take the mean over this, call it **Mean Integrated Squared Error**
+
+$$MISE(h) = E(ISE(h)) = E\left(\int (\hat{f}(x_0)-f(x_0))^2 dx_o\right)$$
+$$ = \int \left(E (\hat{f}(x_0)-f(x_0))^2\right) dx_o$$
+$$ = \int MSE(\hat{f}(x_0)) dx_o$$
+
+
+Idea for "globally optimal" bandwidth $h$: Minimize $MISE(h)$
+
+How do we minimize a function if it is continuously differentiable and (hopefully) convex? Set the first derivative to zero and solve.
+
+$$ MISE(h) = \int MSE(\hat{f}(x_0)) dx_o = \int b(x_0)^2 + Var(\hat{f}(x_0)) dx_o$$
+Take first derivative w.r.t. $h$
+$$\frac{\partial MISE}{\partial h}= \int 2b(x_0)\frac{\partial b}{\partial h} + \frac{\partial Var(\hat{f}(x_0))}{\partial h} dx_o \stackrel{!}{=} 0$$
+We can use the bias and variance terms derived before to find first derivatives and solve
+
+$$h^*=\delta \left(\int f''(x_0)^2 dx_0 \right)^{-0.2}n^{-0.2}, \quad \text{with} \; \delta = \left(\frac{\int K(z)^2dz}{(\int z^2K(z)dz)^2}\right)^{0.2}$$
+Proof in Silverman (1986)
+
+1) Notice the optimal bandwidth depends on the choice of kernel
+
+2) This optimal bandwidth is not constructive because it requires the knowledge of $\int f''(x_0)^2 dx_0$ and $f$ is what we are aiming to estimate. Options?
+
+
+## Plug-in Bandwidth Estimate
+
+Assume $f$ follows a normal density, calculate $\int f''(x_0)^2 dx_0$ for a normal density and 'plug in' $\int f''(x_0)^2 dx_0=3/(8\sqrt{\pi}\sigma^5)$
+
+Then the optimal bandwidth is $h^*=1.364\delta n^{-0.2}s$, with $s$ sample standard deviation of $x$, $\delta$ depends on the kernel
+
+Epanechnikov kernel: $h^*=2.345 n^{-0.2}s$
+
+Gaussian kernel: $h^*=1.059 n^{-0.2}s$
+
+The Silverman plug-in estimate is: $h^*=1.3643\delta n^{-0.2}\min(s,iqr/1.349)$
+
+
+
+# Nonparametric regression
+
+##  Nonparametric local regression
+
+We want to estimate a relationship between variables $x$ and $y$, without making parametric assumptions on the structure of the relationship. Let's assume the draws are i.i.d. and the error term $\varepsilon_i$ is i.i.d. with mean 0 and some variance $\sigma^2_{\varepsilon}$
+$$y_i = g(x_i) + \varepsilon_i$$
+There is no functional form specified for $g$; also no functional form specified for the distribution of $\varepsilon$
+
+##  Local weighted average estimator
+
+Suppose there are $n_0$ observations with $x$ value $x_0$: $(x_0, y_1), (x_0, y_2),...,(x_0,y_{n_0})$
+
+Estimate the value of $g(x_0)$ using an average of all $y$ values at $x_0$: $\bar{g}(x_0)$
+$$\hat{g}(x_0)=\bar{g}(x_0)$$
+The distribution of $\hat{g}(x_0)$ has mean $g(x_0)$ and variance $\frac{1}{n_0}\sigma^2_{\varepsilon}$ (why?)
+
+In practice: $\hat{g}(x_0)$ may be noisy, especially if $x$ is a continuous variable and only very few observations are exactly at $x=x_0$
+
+$\hat{g}(x_0)$ is unbiased but need not be consistent (not in practice, but yes in theory)
+
+Improvement over $\hat{g}(x_0)=\bar{g}(x_0)$: use observations with values of $x$ in a small neighborhood of $x_0$
+
+To start, rewrite $\hat{g}$
+$$\hat{g}(x_0) = \sum_{i=1}^n w_{i0} y_i \quad \cases{w_{i0}=\frac{1}{n_0} \quad \forall x_i=x_0 \\ w_{i0}=0 \quad \forall x_i\neq x_0}$$
+To improve, replace $w_{i0}$ with $w_{i0h}$
+$$\hat{g}(x_0) = \sum_{i=1}^n w_{i0h} y_i \quad \text{with} \quad w_{i0h}=w(x_i,x_0,h) \quad \text{and} \quad \sum_i w_{i0h}=1$$
+Notice that $h$ is the bandwidth in the Kernel regression case, for methods other than Kernel called "window width"
+
+
+###  Example: OLS
+We can write the OLS estimator in this form if we use the following weights
+$$\hat{g}_{OLS}(x_0) = \sum_{i=1}^n \left( \frac{1}{n} + \frac{(x_0-\bar{x})(x_i-\bar{x})}{\sum_j (x_j-\bar{x})^2} \right) y_i$$
+
+###  Example: K-Nearest neighbors (moving average)
+Sort the $(x,y)$ sample by $x$ values. Pick the $(k-1)/2$ values closest to $x_0$ with $x<x_0$, and the $(k-1)/2$ values closest to $x_0$ with $x>x_0$
+$$\hat{g}_k(x_0) = \frac{1}{k}(y_{i-(k-1)/2}+...+y_{i+(k-1)/2})$$
+This can also be written in the form $\hat{g}(x_0) = \sum_{i=1}^n w_{i0k} y_i$ with
+$$w_{i0k} = \frac{1}{k} \; I\left(|i-0|<\frac{k-1}{2}\right)$$
+Here $k$ is some sort of bandwidth/window width. Example: covid cases, hospital admissions
+
+
+### Inference
+Properties of $\hat{g}(x_0)$? Start with definition and $y_i=g(x_i)+\varepsilon_i$, assuming fixed regressors $x_i$
+$$\hat{g}(x_0) = \sum_{i=1}^n w_{ioh}y_i = \sum_{i=1}^n w_{ioh}(g(x_i)+\varepsilon_i) = \sum_{i=1}^n w_{ioh}g(x_i) +\sum_{i=1}^n w_{ioh}\varepsilon_i$$
+$$\Rightarrow \hat{g}(x_0) - \sum_{i=1}^n w_{ioh}g(x_i) = \sum_{i=1}^n w_{ioh}\varepsilon_i$$
+So with $\varepsilon_i$ i.i.d. with $N(0,\sigma^2_{\varepsilon})$ we get that 
+$$\hat{g}(x_0) \sim N\left(\sum_{i=1}^n w_{ioh}g(x_i), \sigma^2_{\varepsilon}\sum_{i=1}^n w^2_{ioh}\right)$$
+The variance term is useful, the mean term is not super useful. Is there bias? Quite probably
+$$E(\hat{g}(x_0))=E\left(\sum_{i=1}^n w_{ioh}g(x_i)\right) + E\left(\sum_{i=1}^n w_{ioh}\varepsilon_i\right)=\sum_{i=1}^n w_{ioh}E(g(x_i))$$
+
+
+##  Kernel regression estimator
+
+Let's consider the Local weighted average estimator with Kernel weights. Assume $y=m(x)+\varepsilon$. Start with the local average estimator for a given bandwidth $h$
+$$\hat{g}(x_0) = \sum_{i=1}^n w_{i0h} y_i \quad \text{with} \quad w_{i0h}=w(x_i,x_0,h) \quad \text{and} \quad \sum_i w_{i0h}=1$$
+
+Equally weight all observations in a neighborhood of $x_0\pm h$, disregard all other observations
+$$\hat{g}(x_0)=\sum_{i=1}^n \frac{I(|\frac{x_i-x_0}{h}|<1) \; y_i}{\sum_{j=1}^n I(|\frac{x_j-x_0}{h}|<1)}$$
+Move from equal weights to Kernel weights. Replace the indicator function with a kernel, meet the **Nadaraya-Watson estimator**
+
+###  Local constant estimator / Nadaraya-Watson estimator
+
+$$\hat{m}_{nw}(x_0)=\frac{\frac{1}{nh}\sum_{i=1}^n K(\frac{x_i-x_0}{h}) \; y_i}{\frac{1}{nh}\sum_{j=1}^n K(\frac{x_j-x_0}{h})}$$
+This is a special case of a local weighted average estimator, with weights
+$$w_{i0h}=\frac{\frac{1}{nh}K(\frac{x_i-x_0}{h})}{\frac{1}{nh}\sum_{j=1}^n K(\frac{x_j-x_0}{h})} = \frac{\frac{1}{nh}K(\frac{x_i-x_0}{h})}{\hat{f}(x_0)}$$
+Weights still sum to 1 $\checkmark$
+
+Nadaraya-Watson estimator also called **local constant** estimator, because at each point, a regression on a constant is conducted.
+
+$$\hat{m}_{nw}(x)=\arg \min_m \sum_{i=1}^n k\left(\frac{x_i-x}{h}\right)(y_i-m)^2$$
+
+> `demo_kernel_regression.R`
+
+
+
+### Consistency $\hat{m}_{nw}(x)$ (CT Chapter 9)
+Assume regressors $x_i$ are i.i.d. with density $f$, the true process is $y_i=m(x_i)+\varepsilon_i$, kernel estimator $\hat{m}(x_0)=\sum_i w_{ioh}y_i$ with $$w_{ioh}=\frac{\frac{1}{nh}K(\frac{x_i-x_0}{h})}{\frac{1}{nh}\sum_i K(\frac{x_i-x_0}{h})}$$
+
+To find the asymptotic distribution of the NW estimator $\hat{m}$, analyze the following expression
+$$\sqrt{nh}(\hat{m}(x_0)-m(x_0)) = \sqrt{nh}\sum_{i=1}^nw_{i0h}(m(x_i)-m(x_0)+\varepsilon_i)$$
+
+Plug in definition of $w_{i0h}$, denominator is identical 
+$$\sqrt{nh}(\hat{m}(x_0)-m(x_0)) = \sqrt{nh}\frac{\frac{1}{nh}\sum_{i=1}^n K(\frac{x_i-x_0}{h})(m(x_i)-m(x_0)+\varepsilon_i)}{\hat{f}(x_0)}= \frac{1}{\sqrt{nh}}\frac{\sum_{i=1}^n K(\frac{x_i-x_0}{h})(m(x_i)-m(x_0)+\varepsilon_i)}{\hat{f}(x_0)}$$
+
+Break up the numerator
+$$\frac{1}{\sqrt{nh}} \sum_{i=1}^n K\left(\frac{x_i-x_0}{h}\right)(m(x_i)-m(x_0)) + \frac{1}{\sqrt{nh}} \sum_{i=1}^n K\left(\frac{x_i-x_0}{h}\right) \varepsilon_i$$
+
+Now find the expected value of this term.
+
+Notice that the second term is zero in expectation **if** $x_i$ and $\varepsilon_i$ are assumed to be independent $cov(x,\varepsilon)=0$. Focus on the first term
+
+$$E\left(\frac{1}{\sqrt{nh}} \sum_{i=1}^n K\left(\frac{x_i-x_0}{h}\right)(m(x_i)-m(x_0))\right)$$
+Remember that $x_i$ i.i.d. ...
+
+
+$$=\frac{1}{\sqrt{nh}}nE\left(K\left(\frac{x-x_0}{h}\right)(m(x)-m(x_0))\right)$$
+$$=\frac{\sqrt{n}}{\sqrt{h}}\int K\left(\frac{x-x_0}{h}\right)(m(x)-m(x_0))f(x)dx$$
+
+Substitute with $z=(x-x_0)/h$, need to expand with $\frac{h}{h}$
+$$=\sqrt{nh}\int K(z)(m(x_0+hz)-m(x_0))f(x_0+hz)dz$$
+Taylor twice! First order at $f(x_0)$, second order at $m(x_0)$
+$$=\sqrt{nh}\int K(z)(m'(x_0)zh+m''(x_0)\frac{1}{2}h^2z^2)(f(x_0)+hzf'(x_0))dz$$
+
+Now we get 4 terms in the sum. One of them contains $h^3$, so we ignore it asymptotically. One term contains $\int z K(z)$ which is zero. Remaining two terms:
+
+$$=\sqrt{nh}\left(\int K(z) h^2z^2 m'(x_0)f'(x_0)dz+\int K(z)\frac{1}{2}h^2 z^2m''(x_0)f(x_0))dz\right)$$
+
+$$=\sqrt{nh}h^2 (m'(x_0)f'(x_0) + \frac{1}{2}m''(x_0)f(x_0)) \left(\int z^2 K(z) dz\right)$$
+Define the term $b(x_0)$ "the bias term of the kernel regression estimator"
+$$b_0 := h^2 (m'(x_0)\frac{f'(x_0)}{f(x_0)} + \frac{1}{2}m''(x_0)) \left(\int z^2 K(z) dz\right)$$
+such that we get
+
+$$E\left[\sqrt{nh}(\hat{m}(x_0)-m(x_0))\right]=\sqrt{nh}\frac{f(x_0)}{\hat{f}(x_0)}b(x_0)$$
+
+If we can be sure that $\hat{f}(x_0)\stackrel{p}{\rightarrow}f(x_0)$, then we have a bias term of order $O(h^2)$ in the limit.
+
+$\hat{m}(x_0)\rightarrow m(x_0)$ requires $h\rightarrow 0$, but also need a large enough "sample size" around $x_0$
+
+$\hat{m}(x_0)\stackrel{p}{\rightarrow} m(x_0)$ if $h\rightarrow 0$ and $nh\rightarrow \infty$
+with the bias term
+
+$$b(x_0)=h^2\left(m'(x_0)\frac{f'(x_0)}{f(x_0)} + \frac{1}{2}m''(x_0) \right) \int z^2 K(z)dz$$
+
+###  Local linear estimator
+
+The **local linear** estimator minimizes the weighted residual sum of squares at each $x$
+
+$$\hat{m}_{ll}(x)=\arg \min_{\alpha,\beta} \sum_{i=1}^n k\left(\frac{x_i-x}{h}\right)(y_i-\alpha-\beta(x_i-x))^2$$
+This is a linear regression with regressors $z_i=(1, x_i-x)$
+$$\hat{\beta}_{LL} = \left(\sum_{i=1}^n k \left(\frac{x_i-x}{h}\right) z_i(x)z_i(x)' \right)^{-1}\sum_{i=1}^n k \left(\frac{x_i-x}{h}\right) z_i(x)y_i$$
+$$=(Z'KZ)^{-1}Z'Ky$$
+$K$ is a diagonal matrix with $k(\frac{x_i-x}{h})$ on each element $i$ on the main diagonal
+
+
+> `demo_kernel_regression.R`
+
+
+
+
+
+

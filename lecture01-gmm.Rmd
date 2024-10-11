@@ -1,0 +1,338 @@
+---
+title: "Econometrics 1"
+subtitle: "GMM - Generalized Method of Moments"
+author: "Sophie Mathes"
+institute: "FGV EPGE"
+date: "4th Quarter 2024"
+output:
+  html_document:
+    theme: sandstone
+    toc: TRUE
+    toc_float: TRUE
+---
+
+Cameron and Trivedi, Chapter 6, Hansen, Chapter 13
+
+
+# Intro
+### Semantics
+
+A distribution function $F$ is a function with certain properties, e.g.
+* it is defined as $F(x)=P(X\leq x)$ for a suitable probability $P$
+  * it is bound by 0 and 1, monotonically increasing from 0 to 1
+* the derivative $f$ of the distribution $F$ is called "density function"
+
+### Moments
+A distribution can be characterized (among other things) by its moments
+
+A normal distribution is **fully characterized** by its first and second moment $\Rightarrow$ if you know the mean and variance of a normal distribution, you know the full distribution. 
+
+
+Moments are defined as 
+
+* $M1(f) = \int x f(x) dx$ (expected value)
+* $M2(f) = \int x^2 f(x) dx$ (second moment, *not quite* the variance)
+* $M3(f) = \int x^3 f(x) dx$ (third moment, skewness)
+* ...
+
+**Method of Moments**: Match (unknown) population moments to (observed) sample moments 
+
+Use (observable) sample moments to learn about (unknown) population moments
+
+Basic idea: 
+
+* use first moment of sample distribution to learn about first moment of population, 
+* second moment of sample distribution to learn about second moment of population distribution
+
+**We assume that we know** the type of the distribution (for example, normal distribution), we use the MOM only to find the moments of this assumed distribution (for example, mean and variance)
+
+Beware: The term "moments" is used relatively loosely in the context of GMM estimation.
+
+
+$\rightarrow$ use essentially any equation that emerges from a model environment, call it a "moment"
+
+# Example: Moment conditions
+## Moment conditions from Economic theory
+### Hansen and Singleton model of expected lifetime utility (1982)
+
+Model: an individual maximizes lifetime utility 
+
+In each period, the individual can consume $c$, and buy $q$ units of an asset at price $p$; receives labor income $w$ and return $r$ on previous investments
+$$\max_{(c)_t} \sum_{t=0}^{\infty} \beta^t u(c_t) \quad \text{s.t.} \; c_t + p_tq_t \leq r_tq_{t-1} + w_t \; \forall t$$
+  
+Euler equation / FOC of optimality for $c_t$ 
+  
+$$p_tu'(c_t)=\beta r_{t+1}u'(c_{t+1})$$
+  
+We assume an individual utility function 
+$$u(c)=\frac{1}{1-\alpha}c^{1-\alpha}$$
+  
+Now we "know" how individuals behave (solve utility max problem), and we "know" the utility function. 
+
+The only thing we do not know is what exactly are the values of $\alpha$ and $\beta$ $\Rightarrow$ Method of Moments!
+  
+In real-world data data on $c_t$ and $r_t$, Euler equation will not hold exactly
+1. because prices and returns are not perfectly predictable, and
+2. because our model equations are not perfect descriptions of the world
+
+But: We will assume that the FOC holds **in expectation** ("expected value=first moment")
+
+**Moment condition**
+$$\varepsilon_t := p_{t}u'(c_t) - \beta r_{t+1}u'(c_{t+1}), \quad E(\varepsilon_t) \stackrel{!}{=} 0$$
+
+How do we calculate our MOM estimates? If we have a long time series for one individual, we can take the expectation over time $t$
+
+$$\frac{1}{T}\sum_{t=1}^T (p_t c_t^{-\alpha}-\beta r_{t+1} c_{t+1}^{-\alpha})=0$$
+
+If we observe a large cross-section of individuals at two points in time 1 and 2 (need to see $c_1$ and $c_2$), we can take the expectation across individuals $n$
+
+$$\frac{1}{n}\sum_{i=1}^n (p_1 c_{i,1}^{-\alpha}-\beta r_2 c_{i,2}^{-\alpha})=0$$
+
+But: If we are interested in two parameters, $\alpha$ and $\beta$. Then we need at least two moment conditions! For example, if we have data in form of a panel with 3 points in time 1, 2, 3
+
+Let's say we are interested in two parameters, $\alpha$ and $\beta$. Then we need at least two moment conditions! 
+
+For example, we could use a panel with 3 points in time (1, 2, 3) and use two Euler conditions
+
+$$\bar{g}_1(\alpha, \beta) := \frac{1}{n}\sum_{i=1}^n (p_1 c_{i,1}^{-\alpha}-\beta r_2 c_{i,2}^{-\alpha})=0$$
+$$\bar{g}_2(\alpha, \beta) := \frac{1}{n}\sum_{i=1}^n (p_2 c_{i,2}^{-\alpha}-\beta r_3 c_{i,3}^{-\alpha})=0$$
+So we have moment conditions $\bar{g}_1(\alpha,\beta)=0$ and $\bar{g}_2(\alpha,\beta)=0$, which we can solve for $\alpha$ and $\beta$, either analytically (bad chances) or numerically (better chances)
+
+
+# Start with Method of Moments
+
+## Method of Moments
+If you have a number of conditions equal to the number of parameters that need to be estimated $\Rightarrow$ Method of Moments
+
+...when there are "too many" conditions $\rightarrow$ we cannot make all of them hold at the same time (except if some conditions happen to be collinear/equivalent)
+
+## Generalized Method of Moments (GMM)
+If there are more conditions than parameters that need to be estimated $\Rightarrow$ Generalized Method of Moments
+
+* Then you can only make each condition hold "approximately" 
+* you need to choose how much you care about each condition / how "important" it is for the condition to hold, compared to all other conditions 
+* $\rightarrow$ set up a weighting matrix to define how important each condition is
+
+**The basis of MOM/GMM estimation: A set of conditions that have to hold**
+
+* These conditions can come from anywhere 
+* You as a researcher need to come up with them
+* The conditions connect data with unknown parameters
+
+For example: the standard regression equation
+$$y_i = x_i \beta + \varepsilon_i \quad \Rightarrow \quad E(\varepsilon_i) = E(y_i - x_i \beta) = 0$$
+connects data $(x_i,y_i)$ and unknown parameter $\beta$
+$$\beta = (X'X)^{-1}XY$$
+
+**How to come up with moment conditions?**
+
+If my model is true, what else has to be true? $\Rightarrow$ How can we use the facts that have to be true to tease out a few extra parameters that we don't know and need to estimate?
+
+
+# Preview: GMM
+
+Take a model, and reformulate it as a "Moment Equation Model" of the form
+$$E(g_i(\beta))=0$$
+and use it to estimate $\beta$ by replacing $E$ with sample averages
+
+* $\beta$ is a k-dimensional vector, "parameters"
+* $g_i$ is a function that maps $\beta$ onto an l-dimensional vector, "moments"
+* and the expected value with respect to observation $i$ needs to be the l-dimensional zero vector
+
+$g_i$ can be any function. We just need to either KNOW or ASSUME that $E(g_i(\beta))=0$
+
+If $l<k$ $\rightarrow$ less moment conditions than parameters, "underidentified"
+
+If $l=k$ $\rightarrow$ number of moment conditions equals number of parameters, "just identified"
+
+If $l>k$ $\rightarrow$ more moment conditions than parameters, "overidentified" $\Rightarrow$ GMM!
+
+We start our considerations with $l=k$...
+
+
+
+#  Definition: Method of Moments Estimator (MME)
+
+The Method of Moments Estimator estimator $\hat{\beta}_{MME}$ for $\beta$ is defined as the estimator that solves the "estimating equation"
+$$\bar{g}_n(\beta)=\frac{1}{n}\sum_{i=1}^n g_i(\beta)=0$$
+$\bar{g}_n$ is also called the "sample analog" of $E(g_i(\beta))$
+
+
+# Example: A Simple MME
+Suppose $\beta$ is just one single parameter, and $g_i(\beta)=y_i - \beta$ 
+
+If we know or assume that $$E(y_i-\beta)=0$$
+
+We have a new moment equation model. Replace expectation $E$ with "sample analog"
+$$\frac{1}{n} \sum_{i=1}^n (y_i-\beta) = 0$$
+Using Very Advanced Math, solve for $\beta$
+$$\beta = \frac{1}{n} \sum_i y_i$$
+Now we have derived an estimator $\hat{\mu}_{MME}$ for a population mean. Notice this is not a very intuitive estimation. We have started with the assumption that $E(y_i-\beta)=0$. This is just an illustration of how the sample mean can be interpreted as a Method of Moments estimator for the population mean.
+
+
+# Example: Another Simple MME
+Assume that $y_i=\beta x_i + u_i$ and $E(u_i|x_i)=0$. Then we can show (Law of iterated expectations)
+
+$$E(x_i \cdot u_i) = E_x(E(x_iu_i|x_i)) = E_x(x_i E(u_i|x_i)) = E_x(x_i \cdot 0)=0$$
+
+We have built another Moment Equation Model $E(g_i(\beta))=0$, this time with $g_i$ defined as $g_i(\beta):=x_i(y_i-x_i\beta)$
+$$E(g_i(\beta))=E(x_i(y_i-x_i\beta))=0$$
+
+Replace the expectation operator with the "sample analog"
+$$\frac{1}{n}\sum_{i=1}^n x_i(y_i-x_i'\beta)=0$$
+solving for $\beta$, we have derived the OLS estimator as a special case of the MME estimator
+$$\beta = \left(\sum_i x_i x_i'\right)^{-1}\sum_i x_i y_i$$
+In matrix notation:
+$$\beta = \left(X' X\right)^{-1} X' Y$$
+Bonus question: Can you see from this notation what are the problems with the dummy variable trap? Hint: $rank(A)=rank(A')=rank(A'A)=rank(AA')$
+
+$\rightarrow$ demonstrate here: `example_mme.R`
+
+# Summary: Basic Recipe MME
+
+#### 1) Know or assume that $E(g_i(\beta)=0)$
+
+For some real and true but unknown $\beta$ that we need to estimate
+
+#### 2) Replace $E(\cdot)$ with $\frac{1}{n}\sum_{i=1}^n(\cdot)$
+
+#### 3) Solve for $\beta$ either analytically or numerically
+Notice there is no standard way prescribed to solve for $\beta$. Every estimation is different. It depends on the estimation problem you set up.
+
+...
+
+Done.
+
+
+# Nonlinear Regression as GMM special case
+
+Generalize the conditional expectation function
+
+Consider a slightly modified relationship between $y_i$, $x_i$, and a parameter $\beta$
+$$y_i=h(x_i,\beta)+u_i$$
+
+If we consider a function $h$ that is anything *other* than $x\beta$, for example $\beta \log x$ or $x^{\beta}$ or $e^{\beta x}$, we have a "non-linear" estimation because $x$ is "not linear in $\beta$"
+
+If we assume that $E(u_i|x_i)=0$ we can show that $E(x_i (y_i-h(x_i,\beta))=0$ (prove!)
+
+Notice that this again gives us a moment equation
+$$E(x_i(y_i-h(x_i,\beta)))=0$$
+so as usual, we plug in the sample analog for $E$, solve for $\beta$ (if possible), and we have found another MME estimator
+
+Notice another convenient fact:
+
+If we assume that $E(u_i|x_i)=0$, we can show *not only* that $E(x_i u_i)=0$ *but also* that $E(f(x_i) u_i)=0$ for any transformation $f$ of $x$ (prove!)
+
+So we can also use the system of moment equations resulting from
+$$E(f(x_i)(y_i-h(x_i,\beta)))=0$$
+**for ANY function $f$ that depends only on $x$**
+
+> When you set up your own GMM estimation you can use whatever transformation $f$ of $x_i$ you need to make your system of equations easier to solve
+
+
+#  IV Regression as GMM special case
+Consider $y_i=x_i'\beta+u_i$ where $x_i$ and $\beta$ are $k$-dimensional vectors
+
+Unfortunately $E(u_i|x_i)\neq 0$ but we have $z_i$ with $E(u_i|z_i)=0$. This implies that (prove!) 
+$$E(z_i(y_i-x_i'\beta))=0$$
+Then, as before, we plug in averages / "sample analogs" for $E$ and get
+$$\frac{1}{n}\sum_{i=1}^n z_i(y_i-x_i'\beta)=0$$
+
+From here on, we consider two cases
+
+1. $dim(z)=dim(x)=k$ - number of instruments equals number of endogenous regressors
+2. $dim(z)\neq dim(x)=k$
+
+## 1. $dim(z)=dim(x)=k$
+
+When $dim(z)=dim(x)=k$ we can solve for $\beta$. Split up the difference
+
+$$\frac{1}{n}\sum_{i=1}^n (z_iy_i- z_ix_i'\beta)=0 \Rightarrow\sum_{i=1}^n (z_iy_i) = \sum_{i=1}^n(z_ix_i'\beta)$$ 
+Check the dimensions:
+$$k\times 1, 1\times 1 = k\times 1, 1\times k, k\times 1$$
+Invert $\sum z_i x'_i$ (the matrix inversion is the step where we need $dim(k)=dim(z)$. only square matrices can be inverted)
+                                                                                                   $$\Rightarrow \left(\sum_{i=1}^n z_ix_i'\right)^{-1} \left(\sum_{i=1}^n z_iy_i \right) = \beta$$
+check dimensions:
+$$(k\times 1, 1\times k)^{-1} (k\times 1, 1\times 1) = k\times 1$$
+Here we have motivated IV regression as a special case of GMM
+
+Circle back to the initial "Moment Equation Model"
+$$E(g_i(\beta))=0$$
+
+* $\beta$ is a $k$-dimensional vector, "parameters"
+* $g_i$ is a function that maps $\beta$ onto an $l$-dimensional vector, "moments"
+
+In the case $l>k$, there are more moment equations than parameters
+
+Is there a problem?
+
+We have $l$ moment equations that we want to equal 0
+
+But we have only $k$ parameters to make this happen
+
+$\rightarrow$ it can happen by chance that there exists a $\beta$ that fulfills all $l$ moment equations
+
+But in general we can no longer hope for a $\hat{\beta}$ such that $\sum_{i=1}^N(g_i(\hat{\beta}))=0$
+
+Instead, we try to find $\hat{\beta}$ to make $\sum_{i=1}^N(g_i(\hat{\beta}))$ *as close to zero as possible*
+
+## 2. $dim(z)>dim(x)$ 
+
+Suppose that $dim(z)=l$ and $dim(x)=k$, $l>k$. Remember
+$$\sum_{i=1}^n (z_iy_i) = \sum_{i=1}^n(z_ix_i'\beta)$$
+                                                                                                     But $z_ix_i'$ is not invertible because it has dimension $l\times k$ (only square matrices can be inverted)
+
+So, what can we do? We have the set of $l$ moment equations
+$$\frac{1}{n} \sum_{i=1}^n (z_iy_i - z_ix_i'\beta) = 0_l$$
+  Written in matrix notation, this is
+$$z'y - z'x\beta = 0$$
+$$(l\times n, n\times 1)-(l\times n, n\times k,k \times 1) = l\times 1$$
+
+
+
+# Motivate GMM as overidentified IV
+
+Define new objects $\mu:=z'y$ (dim $l\times 1$) and $G:=z'x$ (dim $l\times k$) 
+$$\underbrace{z'y}_{=:\mu} - \underbrace{z'x}_{=:G}\beta = 0 \quad \Rightarrow \quad \mu-G\beta=0$$
+
+Then, instead of equating to zero we acknowledge a remaining error $\eta$ 
+$$\mu-G\beta =: \eta$$
+(dimensions of $\eta$?) because we cannot find $\beta$ such that $\mu-G\beta=0$
+
+Rewrite this as 
+$$\mu = G\beta + \eta$$
+and remember what you know about linear regression. 
+
+Idea: minimize the sum of squared residual errors $\eta'\eta$
+
+$$\min_{\beta} \; \eta' \eta = \min_{\beta} \; (\mu - G\beta)'(\mu - G\beta)$$
+
+Solving this "Meta OLS" for an estimator $\hat{\beta}$ yields
+$$\hat{\beta} = \left( G' G \right)^{-1} G'\mu$$
+This will always give you a (consistent) estimator of $\beta$, where $\beta$ is the set of parameters that makes your moment equations hold "as close as possible", given that they cannot be made to hold exactly $E(g_i(\beta))=0$
+
+(When errors are non-homogeneous it can be more efficient to estimate by weighted least squares)
+
+We can add a weighting matrix here; instead of minimizing $\eta'\eta$ we solve $\eta'W\eta$
+
+$$\hat{\beta} = \left( G' W G \right)^{-1} G' W \mu$$
+
+$\Rightarrow$ this *motivates* the GMM estimator $\beta_{GMM}$
+
+
+# Definition: GMM Estimator
+
+Given a set of $l$ moment conditions $E(g_i(\beta))=0_l$ and a positive definite weighting matrix $W$, the GMM estimator $\beta_{GMM}$ minimizes
+
+$$\min_{\beta} \; J(\beta)=n \; \bar{g}_n(\beta)' \; W \; \bar{g}_n(\beta)$$
+
+(Bonus question: when is a matrix called 'positive definite'?)
+
+(Why do we want $W$ to be positive definite?)
+
+If you choose the identity matrix as a weighting matrix $W=I_l$ the estimator $\hat{\beta}$ is the one that solves
+$$\min_{\beta} \; J(\beta)=n \; ||\bar{g}_n(\beta)||^2$$
+(The factor $n$ is not necessary, it just helps with asymptotics)
+
+Remember: If $k=l$, we do not need this minimization. You simply find the $\beta$ that solves $\bar{g}_n(\beta)=0$ (Method of Moments Estimator)
+

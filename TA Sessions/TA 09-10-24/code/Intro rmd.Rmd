@@ -1,0 +1,68 @@
+---
+title: "TA Session Intro Rmd"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-10-01"
+---
+
+# TA Session Rmd
+
+## What is Rmarkdown?
+
+RMarkdown is an easy-to-use authoring format that allows you to integrate text, code, and output in a single document. It is widely used for creating dynamic reports that include both narrative text and data analysis, with support for a variety of output formats like HTML, PDF, and Word. RMarkdown is based on Markdown, a simple formatting syntax, but with added power for embedding code chunks from languages like R, Python, or SQL directly in the document.
+
+### Advantages of RMarkdown
+
+1.  **Combines Code and Narrative**: You can write your analysis and interpretations alongside the actual code used for data manipulation and visualization.
+2.  **Reproducibility**: RMarkdown documents are fully reproducible, meaning that anyone can run the code in your document and get the same results.
+3.  **Flexibility**: RMarkdown supports a wide range of output formats, including HTML, PDF, Word, and even slideshows.
+4.  **Ease of Use**: RMarkdown is easy to learn and use, even for beginners.
+5.  **Mathematical Notation**: You can include LaTeX-style equations for clear and precise mathematical expression.
+
+### What can you do with Rmarkdown?
+
+1.  **Write Text**: You can write regular text as you would in any document. Headings, lists, and other formatting can be done with simple symbols.
+
+```{rmd}
+# This is a heading
+## This is a subheading
+This is a paragraph of text.
+```
+
+2.  **Include Code**: You can include code chunks from R, Python, SQL, and other languages directly in your document. The code is executed when the document is rendered, and the output is displayed alongside the code.
+
+```{r}
+# This is an R code chunk
+summary(cars)
+```
+
+You can include multiple languages like R, Python, and SQL, and the output (like graphs or tables) will be shown in the final document.
+
+3.  **Add Equations**: You can include mathematical equations using LaTeX-style notation. For example, $y = mx + b$ is a simple linear equation.
+
+RMarkdown supports LaTeX syntax for writing mathematical equations. These equations can be inline or displayed on separate lines for emphasis.
+
+Example of an inline equation: $y = mx + b$
+
+Example of a displayed equation:
+
+$$
+\int_{a}^{b} f(x) dx
+$$
+
+4.  **Create Tables and Figures**: You can create tables and figures directly in your RMarkdown document. These can be customized with various formatting options.
+
+```{r}
+# This is an R code chunk to create a plot
+plot(mtcars$mpg, mtcars$hp, main = "Miles Per Gallon vs Horsepower")
+```
+
+5.  **Add Images**: You can also include images in your RMarkdown document. Images can be local files or URLs.
+
+![Twelves (2012-2018) with brazilian singer Latino](../figures/twelves.jpg)
+
+6.  **Other Resources**: For a more in depth guide to RMarkdown, you can refer to the official you can check the resources below
+
+-   [R Markdown: The Definitive Guide](https://bookdown.org/yihui/rmarkdown/)
+-   [R Markdown Basics](https://www.youtube.com/watch?v=8C4xDau0hNc)
