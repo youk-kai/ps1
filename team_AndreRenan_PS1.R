@@ -1,11 +1,9 @@
 library(dplyr)
 library(tidyr)
-# install.packages('fixest')
 library(fixest)
-# install.packages('lubridate')
 library(lubridate)
-# install.packages('ks')
 library(ks)
+library(ggplot2)
 
 #######
 
@@ -21,8 +19,14 @@ temperature_states <- temperature_states %>%
                             region == 2 ~ 'Northeast',
                             region == 3 ~ 'Southeast',
                             region == 4 ~ 'South',
-                            region == 5 ~ 'Central West' ))
+                            region == 5 ~ 'Central-West' ))
 
+# "dict" for region : state
+temperature_states %>% group_by(region) %>% filter(state)
+
+length(unique(temperature_states$state)) aa
+
+##################### (7)
 #######
 
 nat <-
@@ -61,38 +65,49 @@ reg_by_region <-
 
 reg_by_region %>% group_map(~feols(avg_mean_tmax ~ year | month, data=.x))
 
-#####################
+
+##################### (8)
 
 pmps <- #per month per state
   temperature_states %>%
-  group_by(month, state) %>%
+  group_by(state, month, year) %>%
   summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
 
-old_nat_mean <-
-  temperature_states %>%
-  filter(date > '2001-01-01' & date < '2004-12-31') %>%
-  group_by(month, state) %>%
-  summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
-# Estimate the KDE
+temperature_states$
+
+old_pmps <-
+  pmps %>%
+  filter(year > '2001' & year < '2004')
 old_kde_result <- density(old_nat_mean$avg_mean_tmax, bw = 2, kernel = "gaussian")
 
-new_nat_mean <-
-  temperature_states %>%
-  filter(date > '2018-01-01' & date < '2021-12-31') %>%
-  group_by(month, state) %>%
-  summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
-# Estimate the KDE
+new_pmps <-
+  pmps %>%
+  filter(year > '2018' & year < '2021')
 new_kde_result <- density(new_nat_mean$avg_mean_tmax, bw = 2, kernel = "gaussian")
 
+# # Plot the first KDE
+# plot(old_kde_result, main = "Overlapping KDEs for mean_tmax", xlab = "mean_tmax", ylab = "Density", col = "blue")
+# 
+# # Add the second KDE on top of the first one
+# lines(new_kde_result, col = "red")
+# 
+# # Add a legend to differentiate the two periods
+# legend("topright", legend = c("Period 1", "Period 2"), col = c("blue", "red"), lty = 1)
 
-# Plot the first KDE
-plot(old_kde_result, main = "Overlapping KDEs for mean_tmax", xlab = "mean_tmax", ylab = "Density", col = "blue")
+# Extract KDE results into a data frame
+old_kde_data <- data.frame(x = old_kde_result$x, y = old_kde_result$y, Period = "Period 1")
+new_kde_data <- data.frame(x = new_kde_result$x, y = new_kde_result$y, Period = "Period 2")
 
-# Add the second KDE on top of the first one
-lines(new_kde_result, col = "red")
+# Combine the two KDE data frames
+kde_data <- rbind(old_kde_data, new_kde_data)
 
-# Add a legend to differentiate the two periods
-legend("topright", legend = c("Period 1", "Period 2"), col = c("blue", "red"), lty = 1)
+ggplot(kde_data, aes(x = x, y = y, linetype = Period)) +
+  geom_line(linewidth = .2) +  # Plot KDE lines
+  labs(title = "Overlapping KDEs for mean_tmax",
+       x = "mean_tmax",
+       y = "Density") +
+  scale_linetype_manual(values = c('dashed', 'solid')) + # Set colors
+  theme(plot.title = element_text(hjust = 0.5)) 
 
 #####################
 
@@ -103,14 +118,28 @@ pypmps <- function(aregion){
     df <-
       temperature_states %>%
       filter(region == aregion) %>%
-      group_by(year, state) %>%
+      group_by(state, month, year) %>%
       summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
     return(df)
 }
 
+# pypmps <- function(aregion){
+#   df <-
+#     temperature_states %>%
+#     filter(region == aregion) %>%
+#     group_by(state, month) %>%
+#     summarize(avg_mean_tmax = mean(mean_tmax, na.rm = TRUE))
+#   return(df)
+# }
+
+pypmps('South')
+View(pypmps('South'))
+
 regions <- unique(temperature_states$region)
 
 npreg_input <- lapply(regions, pypmps)
+
+npreg_input[[1]]
 
 results <- lapply(npreg_input, function(df) {
   npreg(avg_mean_tmax ~ year, data = df)
@@ -126,7 +155,7 @@ for (region in regions) {
   
   # Create a data frame of fitted values
   region_data <- data.frame(
-    year = npreg_result$x,
+    year = npreg_result$eval,
     fitted = npreg_result$mean,
     region = region
   )
@@ -135,7 +164,30 @@ for (region in regions) {
   fitted_values <- rbind(fitted_values, region_data)
 }
 
-plot(results[['North']])
+
+# Assuming 'regions' has the names of the regions and 'results' contains the npreg objects
+# Extract the fitted values and the corresponding year values for each region
+fitted_data <- do.call(rbind, lapply(seq_along(results), function(i) {
+  data.frame(
+    year = results[[i]]$eval,  # Assuming 'x' contains the year values
+    fitted_values = results[[i]]$mean,  # Assuming 'm' contains the fitted values
+    region = regions[i]
+  )
+}))
+
+
+ggplot(fitted_data, aes(x = year, y = fitted_values, linetype = region)) +
+  geom_line(linewidth=.5) +
+  labs(title = "Fitted npreg Results for Brazilian Regions",
+       x = "Year",
+       y = "Fitted Mean Temperature (Tmax)")
+  # scale_linetype_manual(breaks = c('North',
+  #                                  'Northeast',
+  #                                  'Central-West',
+  #                                  'Southeast',
+  #                                  'South'))
+
+  
 
 # results[[1]]$meAN
 # 
