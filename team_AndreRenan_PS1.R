@@ -24,46 +24,59 @@ temperature_states <- temperature_states %>%
 # "dict" for region : state
 temperature_states %>% group_by(region) %>% filter(state)
 
-length(unique(temperature_states$state)) aa
+length(unique(temperature_states$state))
 
 ##################### (7)
 #######
 
-nat <-
-temperature_states %>%
-  group_by(date) %>%
-  summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean)) 
-doom_nat <-
-  nat %>%
-  filter(avg_mean_tmax > 32)
-print(sprintf('temp > 32 for %s days', nrow(doom_nat)))
-
-reg_nat <- 
-  doom_nat %>%
-  mutate(year=sapply(date, year)) %>%
-  mutate(month=sapply(date, month))
-
-feols(avg_mean_tmax ~ year | month, data=reg_nat)
-
-#######
-  
-by_region <-
+# For each day, average across all grid points
+# to calculate the national average daily max temperature
+nat2 <-
   temperature_states %>%
-  group_by(region, date) %>%
+  group_by(year, month, day) %>%
+  summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
+nat2
+
+# Calculate the number of days per year-month (2001-01, 2001-02, 2001-03,…)
+# in which the average temperature exceeded 32C.
+### v2 assumes "number of days above 32C" in item below
+### is the number of days in this item
+doom_nat2 <-
+  nat2 %>%
+  filter(avg_mean_tmax > 32) %>%
+  count(month)
+doom_nat2
+
+# Regress the number of days above 32C on the calendar year, 
+# using month fixed effects.
+# (Hint: fixest::feols(y ~ x | FE, data=data), Unit of observation: month)
+reg_nat2 <-
+  doom_nat2 %>%
+  ungroup(month)
+feols(n ~ year | month, data=reg_nat2)
+
+
+# Repeat the estimation for each region (North, Northeast,
+# Southeast, South, Central West). (Hint: You need to select all grid points 
+# that fall into one region. Unit of observation: month).
+by_region2 <-
+  temperature_states %>%
+  group_by(region, year, month, day) %>%
   summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean)) 
-doom_by_region <-
-  by_region %>%
-  filter(avg_mean_tmax > 32)
-print(doom_by_region %>% group_map(~nrow(.x)))
 
-reg_by_region <-
-  doom_by_region %>%
-  ungroup() %>%
-  mutate(year=sapply(date, year)) %>%
-  mutate(month=sapply(date, month)) %>%
-  group_by(region)
+doom_by_region2 <-
+  by_region2 %>%
+  filter(avg_mean_tmax > 32) %>%
+  count(month)
 
-reg_by_region %>% group_map(~feols(avg_mean_tmax ~ year | month, data=.x))
+reg_by_region2 <-
+  doom_by_region2 %>%
+  ungroup(year, month)
+reg_by_region2
+
+# duplicated(.) returns FALSE for all three
+
+reg_by_region2 %>% group_map(~feols(n ~ year | month, data=.x))
 
 
 ##################### (8)
@@ -74,8 +87,8 @@ pmps <- #per month per state
   summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
 
 temperature_states$
-
-old_pmps <-
+  
+  old_pmps <-
   pmps %>%
   filter(year > '2001' & year < '2004')
 old_kde_result <- density(old_nat_mean$avg_mean_tmax, bw = 2, kernel = "gaussian")
@@ -115,12 +128,12 @@ install.packages("np")
 library(np)
 
 pypmps <- function(aregion){
-    df <-
-      temperature_states %>%
-      filter(region == aregion) %>%
-      group_by(state, month, year) %>%
-      summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
-    return(df)
+  df <-
+    temperature_states %>%
+    filter(region == aregion) %>%
+    group_by(state, month, year) %>%
+    summarise_at(vars(mean_tmax), list(avg_mean_tmax = mean))
+  return(df)
 }
 
 # pypmps <- function(aregion){
@@ -181,13 +194,13 @@ ggplot(fitted_data, aes(x = year, y = fitted_values, linetype = region)) +
   labs(title = "Fitted npreg Results for Brazilian Regions",
        x = "Year",
        y = "Fitted Mean Temperature (Tmax)")
-  # scale_linetype_manual(breaks = c('North',
-  #                                  'Northeast',
-  #                                  'Central-West',
-  #                                  'Southeast',
-  #                                  'South'))
+# scale_linetype_manual(breaks = c('North',
+#                                  'Northeast',
+#                                  'Central-West',
+#                                  'Southeast',
+#                                  'South'))
 
-  
+
 
 # results[[1]]$meAN
 # 
