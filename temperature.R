@@ -14,6 +14,7 @@
 ###  Sophie Mathes
 ### ------------------------------------------------------------
 
+install.packages('ncdf4')
 library("ncdf4")
 library("weathermetrics")
 library("tidyverse")
